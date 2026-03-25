@@ -14,7 +14,7 @@ module immediate_gen_tb;
     immediate_gen uut (
         .inst(inst),
         .imm_sel(imm_sel),
-        .imm_out(imm_out)
+        .imm(imm_out)
     );
 
     // waveform setup for gtkwave

@@ -20,8 +20,8 @@ module alu_tb;
 
     // Instantiate the ALU
     alu uut (
-        .A(A),
-        .B(B),
+        .ALU_A(A),
+        .ALU_B(B),
         .ALU_select(ALU_select),
         .ALU_out(ALU_out)
     );
