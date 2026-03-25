@@ -1,5 +1,5 @@
 # instruction: run 'make' for alu or set MODULE=<datapath module>
-# this handles compiling, running, and opening gtkwave automatically
+# this handles compiling and running automatically
 
 MODULE ?= alu
 DATAPATH_DIR = datapath
@@ -18,7 +18,7 @@ OUT = $(SIM_OUTPUT_DIR)/$(MODULE)_sim.vvp
 VCD = $(SIM_OUTPUT_DIR)/$(MODULE)_waves.vcd
 SRCS = $(DATAPATH_DIR)/$(MODULE).sv $(TESTBENCH_DIR)/$(MODULE)_tb.sv
 
-all: compile run view
+all: compile run
 
 # compile sv files
 compile: $(SIM_OUTPUT_DIR)
