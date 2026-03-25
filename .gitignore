@@ -1,4 +1,6 @@
 /.library_mapping.xml
 /.project
 /.settings
+/sim_output/
+/sim_ouput/
 cpu_project.code-workspace
