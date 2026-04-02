@@ -1,7 +1,7 @@
 # instruction: run 'make' for alu or set MODULE=<datapath module>
 # this handles compiling and running automatically
 
-MODULE ?= alu
+MODULE ?= cpu_top
 DATAPATH_DIR = datapath
 TESTBENCH_DIR = testbench
 SIM_OUTPUT_DIR = sim_output
@@ -16,7 +16,7 @@ SEED ?= $(shell date +%s%N)
 # file naming
 OUT = $(SIM_OUTPUT_DIR)/$(MODULE)_sim.vvp
 VCD = $(SIM_OUTPUT_DIR)/$(MODULE)_waves.vcd
-SRCS = $(DATAPATH_DIR)/$(MODULE).sv $(TESTBENCH_DIR)/$(MODULE)_tb.sv
+SRCS = $(DATAPATH_DIR)/*.sv $(TESTBENCH_DIR)/$(MODULE)_tb.sv
 
 all: compile run
 
