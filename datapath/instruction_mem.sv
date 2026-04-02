@@ -5,7 +5,7 @@
 
 module instruction_mem(
     input logic [15:0] PC, // program counter/instruction pointer (memory select)
-    output logic [15:0] instruction // selected instruction (memory read out)
+    output logic [15:0] inst // selected instruction out (memory read out)
 );
     //TODO: make variable size
     logic [15:0] memory [0:1023]; // 1k memory array of 16-bit words per the project specs
@@ -14,5 +14,5 @@ module instruction_mem(
         $readmemh("program.mem", memory); // load hex machine code program from mem file
     end
 
-    assign instruction = memory[PC[9:0]];
+    assign inst = memory[PC[9:0]];
 endmodule
