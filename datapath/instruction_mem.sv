@@ -10,9 +10,9 @@ module instruction_mem(
     //TODO: make variable size
     logic [15:0] memory [0:1023]; // 1k memory array of 16-bit words per the project specs
 
-    /*initial begin
+    initial begin
         $readmemh("program.mem", memory); // load hex machine code program from mem file
-    end*/
+    end
 
     assign inst = memory[PC[9:0]];
 endmodule
