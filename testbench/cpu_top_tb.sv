@@ -29,7 +29,7 @@ module cpu_top_tb;
 
     // --- Main Test Sequence ---
     initial begin
-        $dumpfile("cpu_inst_waves.vcd");
+        $dumpfile("cpu_top_waves.vcd");
         $dumpvars(0, cpu_top_tb);
 
         $display("\n==========================================================================================");
@@ -113,3 +113,5 @@ module cpu_top_tb;
     end
 
 endmodule
+
+
