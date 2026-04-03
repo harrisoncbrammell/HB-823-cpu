@@ -38,10 +38,10 @@ module regfile_dataW_select(
 );
 always_comb begin
     case (WB_Sel)
-        2'b00: dataW = dataR; // read from data memory
-        2'b01: dataW = ALU_out; // read from ALU
-        2'b10: dataW = PC + 16'b1; // read from PC+1
-        default: dataW = 16'b0; // default case to avoid latches
+        2'b00: dataW = ALU_out;    // Default: read from ALU (ADD, SUB, LI, etc.)
+        2'b01: dataW = dataR;      // read from data memory (LW)
+        2'b10: dataW = PC + 16'b1; // read from PC+1 (JAL)
+        default: dataW = 16'b0;    // default case to avoid latches
     endcase
 end
 endmodule

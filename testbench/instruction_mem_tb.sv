@@ -12,7 +12,7 @@ module instruction_mem_tb;
     // instantiate the instruction memory
     instruction_mem uut (
         .PC(pc),
-        .instruction(inst)
+        .inst(inst)
     );
 
     // waveform setup for gtkwave
