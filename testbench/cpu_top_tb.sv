@@ -1,17 +1,25 @@
 `timescale 1ns / 1ps
 
+// A testbench to debug the any program.mem program
+// Prints decoded instruction, and actual action taken by CPU
+
 module cpu_top_tb;
 
     // --- Signals for CPU Top ---
     logic        clk;
     logic        reset;
-    
+    // Debug ports
+    logic [3:0]  inr;
+    logic [15:0] outvalue;
+
+    // External Memory Interface
     logic [15:0] Mem_ReadData;
     logic [15:0] Mem_WriteData;
     logic [9:0]  Mem_Address;
     logic        MemWrite;
-    logic [3:0]  inr;
-    logic [15:0] outvalue;
+    
+    // String for our dynamic disassembler
+    string op_name;
 
     // --- Component Instantiations ---
     cpu_top uut (.*);
@@ -33,85 +41,75 @@ module cpu_top_tb;
         $dumpvars(0, cpu_top_tb);
 
         $display("\n==========================================================================================");
-        $display("                          CPU INSTRUCTION VERIFICATION REPORT                             ");
+        $display("                   GENERIC CPU EXECUTION TRACE & DEBUGGER                                 ");
         $display("==========================================================================================");
-
-        // --- INSTRUCTION INJECTION ---
-        // 1. Load Immediates
-        uut.imem.memory[0]  = 16'h520A; // LI R2, 10
-        uut.imem.memory[1]  = 16'h530A; // LI R3, 10
-        uut.imem.memory[2]  = 16'h5405; // LI R4, 5
-        uut.imem.memory[3]  = 16'h550F; // LI R5, 15
-        
-        // 2. ALU Operations
-        uut.imem.memory[4]  = 16'h0624; // ADD R6, R2, R4  (10 + 5 = 15)
-        uut.imem.memory[5]  = 16'h1724; // SUB R7, R2, R4  (10 - 5 = 5)
-        uut.imem.memory[6]  = 16'h2824; // AND R8, R2, R4  (10 & 5 = 0)
-        uut.imem.memory[7]  = 16'h3924; // OR  R9, R2, R4  (10 | 5 = 15)
-        
-        // 3. Memory Access (Offset 6 aligns with reading R6)
-        uut.imem.memory[8]  = 16'h7006; // SW R6, 6(R0)    (Saves 15 into Mem[6])
-        uut.imem.memory[9]  = 16'h6A06; // LW R10, 6(R0)   (Loads 15 into R10)
-        
-        // 4. Branching (Offset 2 aligns with reading R2)
-        uut.imem.memory[10] = 16'h8032; // BEQ R3, R2, 2   (10 == 10 -> Jump to 12)
-        uut.imem.memory[11] = 16'hF000; // HALT            (SKIPPED)
-        
-        uut.imem.memory[12] = 16'h9042; // BNE R4, R2, 2   (5 != 10 -> Jump to 14)
-        uut.imem.memory[13] = 16'hF000; // HALT            (SKIPPED)
-        
-        uut.imem.memory[14] = 16'hA042; // BLT R4, R2, 2   (5 < 10 -> Jump to 16)
-        uut.imem.memory[15] = 16'hF000; // HALT            (SKIPPED)
-        
-        uut.imem.memory[16] = 16'hB052; // BGE R5, R2, 2   (15 >= 10 -> Jump to 18)
-        uut.imem.memory[17] = 16'hF000; // HALT            (SKIPPED)
-        
-        // 5. Unconditional Jump
-        uut.imem.memory[18] = 16'hC102; // JAL R1, 2       (Jump to 20, R1 gets PC+1=19)
-        uut.imem.memory[19] = 16'hF000; // HALT            (SKIPPED)
-        
-        // 6. Finish
-        uut.imem.memory[20] = 16'hF000; // HALT            (Execution stops)
+        $display("  Time | PC | Hex  | Decoded | Action Taken by Hardware");
+        $display("------------------------------------------------------------------------------------------");
 
         // Initialize
         clk = 0;
         reset = 1;
-        inr = 0; 
         
+        // Hold reset for a few cycles
         #15;
         reset = 0;
     end
 
-    // --- AUTOMATED VERIFICATION LOGGER ---
-    // We sample on the negative edge, right after combinational logic evaluates, 
-    // but right before the clock actually writes it to the registers!
+    // --- DYNAMIC HARDWARE DISASSEMBLER ---
+    // This reads the live instruction wire and decodes the Opcode (top 4 bits) on the fly!
+    always @(*) begin
+        case (uut.inst[15:12])
+            4'h0: op_name = "ADD ";
+            4'h1: op_name = "SUB ";
+            4'h2: op_name = "AND ";
+            4'h3: op_name = "OR  ";
+            4'h5: op_name = "LI  ";
+            4'h6: op_name = "LW  ";
+            4'h7: op_name = "SW  ";
+            4'h8: op_name = "BEQ ";
+            4'h9: op_name = "BNE ";
+            4'hA: op_name = "BLT ";
+            4'hB: op_name = "BGE ";
+            4'hC: op_name = "JAL ";
+            4'hF: op_name = "HALT";
+            default: op_name = "UNKN";
+        endcase
+    end
+
+    // --- DYNAMIC STATE MONITOR ---
     always @(negedge clk) begin
         if (!reset) begin
-            case (uut.PC)
-                16'd0:  $display("PC: %2d | [LI  R2, 10]    | Inputs: imm=10             | Output: dataW=%2d     | Expected: 10", uut.PC, uut.dataW);
-                16'd1:  $display("PC: %2d | [LI  R3, 10]    | Inputs: imm=10             | Output: dataW=%2d     | Expected: 10", uut.PC, uut.dataW);
-                16'd2:  $display("PC: %2d | [LI  R4, 5]     | Inputs: imm=5              | Output: dataW=%2d     | Expected:  5", uut.PC, uut.dataW);
-                16'd3:  $display("PC: %2d | [LI  R5, 15]    | Inputs: imm=15             | Output: dataW=%2d     | Expected: 15", uut.PC, uut.dataW);
-                16'd4:  $display("PC: %2d | [ADD R6, R2, R4]| Inputs: R2=%0d, R4=%0d        | Output: dataW=%2d     | Expected: 15", uut.PC, uut.dataR1, uut.dataR2, uut.dataW);
-                16'd5:  $display("PC: %2d | [SUB R7, R2, R4]| Inputs: R2=%0d, R4=%0d        | Output: dataW=%2d     | Expected:  5", uut.PC, uut.dataR1, uut.dataR2, uut.dataW);
-                16'd6:  $display("PC: %2d | [AND R8, R2, R4]| Inputs: R2=%0d, R4=%0d        | Output: dataW=%2d     | Expected:  0", uut.PC, uut.dataR1, uut.dataR2, uut.dataW);
-                16'd7:  $display("PC: %2d | [OR  R9, R2, R4]| Inputs: R2=%0d, R4=%0d        | Output: dataW=%2d     | Expected: 15", uut.PC, uut.dataR1, uut.dataR2, uut.dataW);
-                16'd8:  $display("PC: %2d | [SW  R6, 6(R0)] | Inputs: R6=%0d, addr=6       | Output: Mem[%0d]=%0d   | Expected: Mem[6]=15", uut.PC, uut.Mem_WriteData, uut.Mem_Address, uut.Mem_WriteData);
-                16'd9:  $display("PC: %2d | [LW  R10,6(R0)] | Inputs: addr=6             | Output: dataW=%2d     | Expected: 15", uut.PC, uut.dataW);
-                16'd10: $display("PC: %2d | [BEQ R3, R2, 2] | Inputs: R3=%0d, R2=%0d (Eq)    | Output: NextPC=%2d    | Expected: 12", uut.PC, uut.dataR1, uut.dataR2, uut.PC_write);
-                16'd12: $display("PC: %2d | [BNE R4, R2, 2] | Inputs: R4=%0d, R2=%0d (Neq)   | Output: NextPC=%2d    | Expected: 14", uut.PC, uut.dataR1, uut.dataR2, uut.PC_write);
-                16'd14: $display("PC: %2d | [BLT R4, R2, 2] | Inputs: R4=%0d, R2=%0d (Less)  | Output: NextPC=%2d    | Expected: 16", uut.PC, uut.dataR1, uut.dataR2, uut.PC_write);
-                16'd16: $display("PC: %2d | [BGE R5, R2, 2] | Inputs: R5=%0d, R2=%0d (GTE)   | Output: NextPC=%2d    | Expected: 18", uut.PC, uut.dataR1, uut.dataR2, uut.PC_write);
-                16'd18: $display("PC: %2d | [JAL R1, 2]     | Inputs: PC=18, imm=2       | Out: NxtPC=%0d, R1=%0d| Exp: NxtPC=20, R1=19", uut.PC, uut.PC_write, uut.dataW);
-                16'd20: begin
-                        $display("PC: %2d | [HALT]          | Inputs: none               | Output: RegWEn=%b     | Expected: 0", uut.PC, uut.RegWEn);
-                        $display("==========================================================================================");
-                        $finish;
-                end
-            endcase
+            $write("%6t | %2d | %4h | %s    | ", $time, uut.PC, uut.inst, op_name);
+
+            // 1. HALT
+            if (uut.inst == 16'hF000) begin
+                $display("Stopping execution.");
+                $display("==========================================================================================\n");
+                $finish;
+            end
+            
+            // 2. MEMORY WRITES (SW)
+            else if (uut.MemWrite) begin
+                $display("MEM WRITE: Mem[%0d] gets %0d", uut.Mem_Address, uut.Mem_WriteData);
+            end
+            
+            // 3. REGISTER WRITES
+            else if (uut.RegWEn) begin
+                if (uut.inst[15:12] == 4'hC) // Special JAL print
+                    $display("REG WRITE: R1 (Return Addr) gets %0d, Jumping to PC %0d", uut.dataW, uut.PC_write);
+                else
+                    $display("REG WRITE: R%0d gets %0d", uut.inst[11:8], uut.dataW);
+            end
+            
+            // 4. BRANCHES
+            else if (uut.PC_write != uut.PC + 16'd1) begin
+                $display("BRANCH TAKEN: Jumping to PC %0d", uut.PC_write);
+            end
+            
+            else begin
+                $display("NO STATE CHANGE (Branch not taken or NOP)");
+            end
         end
     end
 
 endmodule
-
-
