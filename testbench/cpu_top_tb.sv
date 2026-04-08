@@ -1,23 +1,25 @@
 `timescale 1ns / 1ps
 
+// A testbench to debug the any program.mem program
+// Prints decoded instruction, and actual action taken by CPU
+
 module cpu_top_tb;
 
     // --- Signals for CPU Top ---
     logic        clk;
     logic        reset;
-    
+    // Debug ports
+    logic [3:0]  inr;
+    logic [15:0] outvalue;
+
     // External Memory Interface
     logic [15:0] Mem_ReadData;
     logic [15:0] Mem_WriteData;
     logic [9:0]  Mem_Address;
     logic        MemWrite;
     
-    // Debug Ports
-    logic [3:0]  inr;
-    logic [15:0] outvalue;
-
-    // String for our internal disassembler
-    string asm_str;
+    // String for our dynamic disassembler
+    string op_name;
 
     // --- Component Instantiations ---
     cpu_top uut (.*);
@@ -39,106 +41,73 @@ module cpu_top_tb;
         $dumpvars(0, cpu_top_tb);
 
         $display("\n==========================================================================================");
-        $display("                   CPU EXECUTION TRACE & SELF-CHECKING DEBUGGER                           ");
+        $display("                   GENERIC CPU EXECUTION TRACE & DEBUGGER                                 ");
         $display("==========================================================================================");
-        $display("  Time | PC | Hex  | Assembly         | Action Taken & Verification");
+        $display("  Time | PC | Hex  | Decoded | Action Taken by Hardware");
         $display("------------------------------------------------------------------------------------------");
 
         // Initialize
         clk = 0;
         reset = 1;
-        inr = 0; 
         
         // Hold reset for a few cycles
         #15;
         reset = 0;
     end
 
-    // --- INTERNAL DISASSEMBLER ---
-    // Maps the current PC to the human-readable assembly instruction
+    // --- DYNAMIC HARDWARE DISASSEMBLER ---
+    // This reads the live instruction wire and decodes the Opcode (top 4 bits) on the fly!
     always @(*) begin
-        case (uut.PC)
-            16'd0:  asm_str = "LI  R2, 10";
-            16'd1:  asm_str = "LI  R3, 10";
-            16'd2:  asm_str = "LI  R4, 5";
-            16'd3:  asm_str = "LI  R5, 15";
-            16'd4:  asm_str = "ADD R6, R2, R4";
-            16'd5:  asm_str = "SUB R7, R2, R4";
-            16'd6:  asm_str = "AND R8, R2, R4";
-            16'd7:  asm_str = "OR  R9, R2, R4";
-            16'd8:  asm_str = "SW  R6, 6(R0)";
-            16'd9:  asm_str = "LW  R10, 6(R0)";
-            16'd10: asm_str = "BEQ R3, R2, 2";
-            16'd12: asm_str = "BNE R4, R2, 2";
-            16'd14: asm_str = "BLT R4, R2, 2";
-            16'd16: asm_str = "BGE R5, R2, 2";
-            16'd18: asm_str = "JAL R1, 2";
-            16'd20: asm_str = "HALT";
-            default: asm_str = "SKIPPED / NOP";
+        case (uut.inst[15:12])
+            4'h0: op_name = "ADD ";
+            4'h1: op_name = "SUB ";
+            4'h2: op_name = "AND ";
+            4'h3: op_name = "OR  ";
+            4'h5: op_name = "LI  ";
+            4'h6: op_name = "LW  ";
+            4'h7: op_name = "SW  ";
+            4'h8: op_name = "BEQ ";
+            4'h9: op_name = "BNE ";
+            4'hA: op_name = "BLT ";
+            4'hB: op_name = "BGE ";
+            4'hC: op_name = "JAL ";
+            4'hF: op_name = "HALT";
+            default: op_name = "UNKN";
         endcase
     end
 
-    // --- DYNAMIC STATE MONITOR & VERIFIER ---
+    // --- DYNAMIC STATE MONITOR ---
     always @(negedge clk) begin
         if (!reset) begin
-            // %-16s pads the assembly string to perfectly align the columns!
-            $write("%6t | %2d | %4h | %-16s | ", $time, uut.PC, uut.inst, asm_str);
+            $write("%6t | %2d | %4h | %s    | ", $time, uut.PC, uut.inst, op_name);
 
             // 1. HALT
             if (uut.inst == 16'hF000) begin
-                $display("HALT DETECTED. Stopping execution.");
+                $display("Stopping execution.");
                 $display("==========================================================================================\n");
                 $finish;
             end
             
             // 2. MEMORY WRITES (SW)
             else if (uut.MemWrite) begin
-                if (uut.PC == 8 && uut.Mem_WriteData !== 15)
-                    $display("[FAIL] MEM WRITE: Expected 15, Got %0d", uut.Mem_WriteData);
-                else
-                    $display("[PASS] MEM WRITE: Mem[%0d] gets %0d", uut.Mem_Address, uut.Mem_WriteData);
+                $display("MEM WRITE: Mem[%0d] gets %0d", uut.Mem_Address, uut.Mem_WriteData);
             end
             
-            // 3. REGISTER WRITES (ALU, LI, LW)
+            // 3. REGISTER WRITES
             else if (uut.RegWEn) begin
-                logic [15:0] expected_val;
-                logic        check_math;
-                
-                check_math = 1'b1; // Default to checking
-                
-                // Define the expected math for your specific program
-                case (uut.PC)
-                    0: expected_val = 10; // LI R2, 10
-                    1: expected_val = 10; // LI R3, 10
-                    2: expected_val = 5;  // LI R4, 5
-                    3: expected_val = 15; // LI R5, 15
-                    4: expected_val = 15; // ADD (10+5)
-                    5: expected_val = 5;  // SUB (10-5)
-                    6: expected_val = 0;  // AND (10&5)
-                    7: expected_val = 15; // OR  (10|5)
-                    9: expected_val = 15; // LW
-                    18: expected_val = 19; // JAL return address
-                    default: check_math = 1'b0; // Don't check unknown PCs
-                endcase
-
-                if (check_math) begin
-                    if (uut.dataW !== expected_val)
-                        $display("[FAIL] REG WRITE: R%0d Expected %0d, Got %0d", uut.inst[11:8], expected_val, uut.dataW);
-                    else
-                        $display("[PASS] REG WRITE: R%0d correctly received %0d", uut.inst[11:8], uut.dataW);
-                end else begin
-                    // Fallback for generic instructions not in the case statement
-                    $display("[ OK ] REG WRITE: R%0d gets %0d", uut.inst[11:8], uut.dataW);
-                end
+                if (uut.inst[15:12] == 4'hC) // Special JAL print
+                    $display("REG WRITE: R1 (Return Addr) gets %0d, Jumping to PC %0d", uut.dataW, uut.PC_write);
+                else
+                    $display("REG WRITE: R%0d gets %0d", uut.inst[11:8], uut.dataW);
             end
             
             // 4. BRANCHES
             else if (uut.PC_write != uut.PC + 16'd1) begin
-                $display("[PASS] BRANCH TAKEN: Next PC -> %0d", uut.PC_write);
+                $display("BRANCH TAKEN: Jumping to PC %0d", uut.PC_write);
             end
             
             else begin
-                $display("NO STATE CHANGE");
+                $display("NO STATE CHANGE (Branch not taken or NOP)");
             end
         end
     end
