@@ -54,12 +54,18 @@ module cpu_top (
     assign opcode = inst[15:12];
 
     always_comb begin
-        // defaults for R-type instructions
+        // defaults for R type instructions
         rsR1_addr = inst[7:4];
         rsR2_addr = inst[3:0];
         rdW_addr  = inst[11:8];
 
         case (opcode)
+            4'h5: begin // LI
+                rsR1_addr = 4'd0;        // force ALU A input to R0 = 0
+                rsR2_addr = 4'd0;        // unused
+                rdW_addr  = inst[11:8];
+            end
+            
             4'h6: begin // LW
                 rsR1_addr = inst[7:4];   // base register rB
                 rsR2_addr = 4'd0;        // unused
