@@ -1,0 +1,2 @@
+block_mem_data.v,verilog,xil_defaultlib,../../../../nexys-a7.gen/sources_1/ip/block_mem_data/sim/block_mem_data.v,incdir="C:/AMDDesignTools/2025.2/Vivado/data/rsb/busdef"
+glbl.v,Verilog,xil_defaultlib,glbl.v

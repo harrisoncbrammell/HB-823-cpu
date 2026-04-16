@@ -1,0 +1,7 @@
+verilog xil_defaultlib -i "C:/AMDDesignTools/2025.2/Vivado/data/rsb/busdef" \
+"../../../../nexys-a7.gen/sources_1/ip/block_mem_data/sim/block_mem_data.v" \
+
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort
