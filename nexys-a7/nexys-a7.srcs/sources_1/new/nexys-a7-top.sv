@@ -32,12 +32,20 @@ module nexys_a7_top(
     logic [15:0] Mem_Address;
     logic MemWrite;
 
-    block_mem_data block_mem_data_instance (
-        .clka(CLK100MHZ),
-        .wea(MemWrite),
-        .addra(Mem_Address),
-        .dina(Mem_WriteData),
-        .douta(Mem_ReadData)
+    // block_mem_data block_mem_data_instance (
+    //     .clka(CLK100MHZ),
+    //     .wea(MemWrite),
+    //     .addra(Mem_Address),
+    //     .dina(Mem_WriteData),
+    //     .douta(Mem_ReadData)
+    // );
+
+    data_mem data_mem_instance (
+        .clk(CLK100MHZ),
+        .MemWrite(MemWrite),
+        .addr(Mem_Address),
+        .dataW(Mem_WriteData),
+        .dataR(Mem_ReadData)
     );
 
     cpu_top hb823 (

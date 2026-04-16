@@ -9,7 +9,7 @@ module data_mem(
     output logic [15:0] dataR // data read from memory
 );
     //TODO: Make variable size
-    logic [15:0] memory [0:1023]; // 1k memory array of 16-bit words
+    (* ram_style = "block" *) reg [15:0] memory [0:1023]; // 1k memory array of 16-bit words
 
     assign dataR = memory[addr[9:0]];  // it will always output the data at the given address immediately
 
@@ -18,5 +18,4 @@ module data_mem(
             memory[addr[9:0]] <= dataW;
         end
     end
-
 endmodule

@@ -20,6 +20,7 @@ module cpu_top_tb;
     
     // String for our dynamic disassembler
     string op_name;
+    string instr_decoded;
 
     // --- Component Instantiations ---
     cpu_top uut (.*);
@@ -43,7 +44,7 @@ module cpu_top_tb;
         $display("\n==========================================================================================");
         $display("                   GENERIC CPU EXECUTION TRACE & DEBUGGER                                 ");
         $display("==========================================================================================");
-        $display("  Time | PC | Hex  | Decoded | Action Taken by Hardware");
+        $display("  Time | PC | Hex  | Full Instruction Decode | Action Taken by Hardware");
         $display("------------------------------------------------------------------------------------------");
 
         // Initialize
@@ -55,31 +56,48 @@ module cpu_top_tb;
         reset = 0;
     end
 
-    // --- DYNAMIC HARDWARE DISASSEMBLER ---
-    // This reads the live instruction wire and decodes the Opcode (top 4 bits) on the fly!
-    always @(*) begin
-        case (uut.inst[15:12])
-            4'h0: op_name = "ADD ";
-            4'h1: op_name = "SUB ";
-            4'h2: op_name = "AND ";
-            4'h3: op_name = "OR  ";
-            4'h5: op_name = "LI  ";
-            4'h6: op_name = "LW  ";
-            4'h7: op_name = "SW  ";
-            4'h8: op_name = "BEQ ";
-            4'h9: op_name = "BNE ";
-            4'hA: op_name = "BLT ";
-            4'hB: op_name = "BGE ";
-            4'hC: op_name = "JAL ";
-            4'hF: op_name = "HALT";
-            default: op_name = "UNKN";
+    // --- FUNCTION: Decode full instruction with operands ---
+    function string decode_instruction(logic [15:0] inst);
+        logic [3:0] opcode, rd, rs1, rs2;
+        logic [7:0] imm;
+        string result;
+        
+        opcode = inst[15:12];
+        rd = inst[11:8];
+        rs1 = inst[7:4];
+        rs2 = inst[3:0];
+        imm = inst[7:0];
+        
+        case (opcode)
+            4'h0: result = $sformatf("ADD R%0d, R%0d, R%0d", rd, rs1, rs2);
+            4'h1: result = $sformatf("SUB R%0d, R%0d, R%0d", rd, rs1, rs2);
+            4'h2: result = $sformatf("AND R%0d, R%0d, R%0d", rd, rs1, rs2);
+            4'h3: result = $sformatf("OR  R%0d, R%0d, R%0d", rd, rs1, rs2);
+            4'h5: result = $sformatf("LI  R%0d, 0x%02h", rd, imm);
+            4'h6: result = $sformatf("LW  R%0d, R%0d, 0x%02h", rd, rs1, imm);
+            4'h7: result = $sformatf("SW  R%0d, R%0d, 0x%02h", rs1, rs2, imm);
+            4'h8: result = $sformatf("BEQ R%0d, R%0d, 0x%02h", rs1, rs2, imm);
+            4'h9: result = $sformatf("BNE R%0d, R%0d, 0x%02h", rs1, rs2, imm);
+            4'hA: result = $sformatf("BLT R%0d, R%0d, 0x%02h", rs1, rs2, imm);
+            4'hB: result = $sformatf("BGE R%0d, R%0d, 0x%02h", rs1, rs2, imm);
+            4'hC: result = $sformatf("JAL R%0d, 0x%02h", rd, imm);
+            4'hF: result = "HALT";
+            default: result = "UNKNOWN";
         endcase
+        
+        return result;
+    endfunction
+
+    // --- DYNAMIC HARDWARE DISASSEMBLER ---
+    // This reads the live instruction wire and decodes the full instruction on the fly!
+    always @(*) begin
+        instr_decoded = decode_instruction(uut.inst);
     end
 
     // --- DYNAMIC STATE MONITOR ---
     always @(negedge clk) begin
         if (!reset) begin
-            $write("%6t | %2d | %4h | %s    | ", $time, uut.PC, uut.inst, op_name);
+            $write("%6t | %2d | %4h | %-25s | ", $time, uut.PC, uut.inst, instr_decoded);
 
             // 1. HALT
             if (uut.inst == 16'hF000) begin
