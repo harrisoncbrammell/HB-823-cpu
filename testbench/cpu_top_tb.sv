@@ -18,15 +18,34 @@ module cpu_top_tb;
     logic [9:0]  Mem_Address;
     logic        MemWrite;
 
-    // Trace registers so the printed line corresponds to the instruction
-    // that just executed, including the very first one.
+    // --- Trace registers ---
     logic [15:0] trace_PC;
     logic [15:0] trace_inst;
+    logic        trace_RegWEn;
+    logic        trace_MemWrite;
+    logic [15:0] trace_dataW;
+    logic [15:0] trace_PC_write;
+    logic [9:0]  trace_Mem_Address;
+    logic [15:0] trace_Mem_WriteData;
 
     // --- Component Instantiations ---
-    cpu_top uut (.*);
+    cpu_top uut (
+        .clk(clk),
+        .reset(reset),
+        .PC(PC),
+        .inst(inst),
+        .Mem_ReadData(Mem_ReadData),
+        .Mem_WriteData(Mem_WriteData),
+        .Mem_Address(Mem_Address),
+        .MemWrite(MemWrite),
+        .inr(inr),
+        .outvalue(outvalue)
+    );
 
-    instruction_mem imem (.*);
+    instruction_mem imem (
+        .PC(PC),
+        .inst(inst)
+    );
 
     data_mem dmem (
         .clk(clk),
@@ -45,7 +64,7 @@ module cpu_top_tb;
         $dumpvars(0, cpu_top_tb);
 
         $display("\n==========================================================================================");
-        $display("                   GENERIC CPU EXECUTION TRACE & DEBUGGER                                 ");
+        $display("                   GENERIC CPU EXECUTION TRACE & DEBUGGER");
         $display("==========================================================================================");
         $display("  Time | PC | Hex  | Full Instruction Decode | Action Taken by Hardware");
         $display("------------------------------------------------------------------------------------------");
@@ -56,6 +75,12 @@ module cpu_top_tb;
 
         trace_PC = 16'd0;
         trace_inst = 16'd0;
+        trace_RegWEn = 1'b0;
+        trace_MemWrite = 1'b0;
+        trace_dataW = 16'd0;
+        trace_PC_write = 16'd0;
+        trace_Mem_Address = 10'd0;
+        trace_Mem_WriteData = 16'd0;
 
         #15;
         reset = 0;
@@ -100,44 +125,52 @@ module cpu_top_tb;
         return result;
     endfunction
 
-    // Capture the instruction/PC that are about to execute on this cycle.
+    // Capture the instruction being executed and the corresponding action signals.
+    // Because DUT state updates use nonblocking assignments on the same edge,
+    // these sampled values correspond to the instruction that is executing now.
     always @(posedge clk) begin
         if (!reset) begin
-            trace_PC   <= PC;
-            trace_inst <= inst;
+            trace_PC            <= PC;
+            trace_inst          <= inst;
+            trace_RegWEn        <= uut.RegWEn;
+            trace_MemWrite      <= uut.MemWrite;
+            trace_dataW         <= uut.dataW;
+            trace_PC_write      <= uut.PC_write;
+            trace_Mem_Address   <= uut.Mem_Address;
+            trace_Mem_WriteData <= uut.Mem_WriteData;
         end
     end
 
-    // --- DYNAMIC STATE MONITOR ---
+    // Print one half-cycle later using the saved values
     always @(negedge clk) begin
         if (!reset) begin
             $write("%6t | %2d | %4h | %-25s | ",
                    $time, trace_PC, trace_inst, decode_instruction(trace_inst));
 
-            // 1. HALT
+            // HALT
             if (trace_inst == 16'hF000) begin
                 $display("Stopping execution.");
                 $display("==========================================================================================\n");
                 $finish;
             end
 
-            // 2. MEMORY WRITES (SW)
-            else if (uut.MemWrite) begin
-                $display("MEM WRITE: Mem[%0d] gets %0d", uut.Mem_Address, uut.Mem_WriteData);
+            // Memory writes
+            else if (trace_MemWrite) begin
+                $display("MEM WRITE: Mem[%0d] gets %0d", trace_Mem_Address, trace_Mem_WriteData);
             end
 
-            // 3. REGISTER WRITES
-            else if (uut.RegWEn) begin
+            // Register writes
+            else if (trace_RegWEn) begin
                 if (trace_inst[15:12] == 4'hC)
                     $display("REG WRITE: R%0d gets return addr %0d, Jumping to PC %0d",
-                             trace_inst[11:8], uut.dataW, uut.PC_write);
+                             trace_inst[11:8], trace_dataW, trace_PC_write);
                 else
-                    $display("REG WRITE: R%0d gets %0d", trace_inst[11:8], uut.dataW);
+                    $display("REG WRITE: R%0d gets %0d", trace_inst[11:8], trace_dataW);
             end
 
-            // 4. BRANCH / JUMP TAKEN
-            else if (uut.PC_write != uut.PC + 16'd1) begin
-                $display("BRANCH/JUMP TAKEN: Jumping to PC %0d", uut.PC_write);
+            // Branch/jump taken
+            else if (trace_PC_write != trace_PC + 16'd1) begin
+                $display("BRANCH/JUMP TAKEN: Jumping to PC %0d", trace_PC_write);
             end
 
             else begin
