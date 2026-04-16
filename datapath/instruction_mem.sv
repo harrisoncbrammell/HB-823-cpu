@@ -11,7 +11,7 @@ module instruction_mem(
     logic [15:0] memory [0:1023]; // 1k memory array of 16-bit words per the project specs
 
     initial begin
-        $readmemh("../program.mem", memory); // load hex machine code program from mem file
+        $readmemh("program.mem", memory); // load hex machine code program from mem file
     end
 
     assign inst = memory[PC[9:0]];

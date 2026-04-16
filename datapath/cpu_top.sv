@@ -1,5 +1,7 @@
 `timescale 1ns / 1ps
 
+//TODO: Fix JALR loop issue with long programs.
+
 module cpu_top (
     input logic clk, // clk input
     input logic reset, // async reset input
@@ -17,7 +19,6 @@ module cpu_top (
 );
 
     // --- Internal Wires ---
-    // PC & Instruction
     logic [15:0] PC_write;
 
     // Control Signals
@@ -26,7 +27,7 @@ module cpu_top (
     logic        PC_Sel;
     logic        A_Sel;
     logic        B_Sel;
-    logic [1:0]  ALU_select;
+    logic [2:0]  ALU_select;
     logic [1:0]  WB_Sel;
     logic        RegWEn;
     logic        imm_sel;
@@ -52,20 +53,6 @@ module cpu_top (
 
     assign opcode = inst[15:12];
 
-    // --- Register address selection ---
-    // R-type default:
-    //   rd  = inst[11:8]
-    //   rs1 = inst[7:4]
-    //   rs2 = inst[3:0]
-    //
-    // Branch format:
-    //   [15:12] opcode | [11:8] rA | [7:4] rB | [3:0] imm4
-    // so branches must compare rA and rB, not [7:4] and [3:0]
-    //
-    // LW/SW format:
-    //   [15:12] opcode | [11:8] rA | [7:4] rB | [3:0] imm4
-    // LW  rA, imm4(rB): rA = destination, rB = base
-    // SW  rA, imm4(rB): rA = store data,  rB = base
     always_comb begin
         // defaults for R-type instructions
         rsR1_addr = inst[7:4];
@@ -74,21 +61,27 @@ module cpu_top (
 
         case (opcode)
             4'h6: begin // LW
-                rsR1_addr = inst[7:4]; // base register rB
-                rsR2_addr = 4'd0;      // unused
-                rdW_addr  = inst[11:8]; // destination rA
+                rsR1_addr = inst[7:4];   // base register rB
+                rsR2_addr = 4'd0;        // unused
+                rdW_addr  = inst[11:8];  // destination rA
             end
 
             4'h7: begin // SW
-                rsR1_addr = inst[7:4];  // base register rB
-                rsR2_addr = inst[11:8]; // store data register rA
-                rdW_addr  = 4'd0;       // unused
+                rsR1_addr = inst[7:4];   // base register rB
+                rsR2_addr = inst[11:8];  // store data register rA
+                rdW_addr  = 4'd0;        // unused
             end
 
             4'h8, 4'h9, 4'hA, 4'hB: begin // BEQ, BNE, BLT, BGE
-                rsR1_addr = inst[11:8]; // rA
-                rsR2_addr = inst[7:4];  // rB
-                rdW_addr  = 4'd0;       // unused
+                rsR1_addr = inst[11:8];  // rA
+                rsR2_addr = inst[7:4];   // rB
+                rdW_addr  = 4'd0;        // unused
+            end
+
+            4'hD: begin // JALR
+                rsR1_addr = inst[7:4];   // rs1
+                rsR2_addr = 4'd0;        // use R0 so ALU computes rs1 + 0
+                rdW_addr  = inst[11:8];  // destination rd for link value
             end
 
             default: begin
@@ -98,7 +91,6 @@ module cpu_top (
     end
 
     // --- Component Modules Instantiations ---
-    // automatic connections (all same port names)
     pc pc_inst (.*);
     control_unit ctrl (.*);
     immediate_gen imm_gen (.*);
@@ -106,7 +98,6 @@ module cpu_top (
     pc_write_select next_pc_mux (.*);
     alu_input_select alu_input_select_instance (.*);
 
-    // manual connections
     reg_file reg_file_instance (
         .clk(clk),
         .reset(reset),
@@ -136,8 +127,7 @@ module cpu_top (
         .dataW(dataW)
     );
 
-    // external data memory driver
-    assign Mem_Address   = ALU_out[9:0]; // alu calculates target memory address
-    assign Mem_WriteData = dataR2;       // for SW, rsR2 now correctly selects rA (store data)
+    assign Mem_Address   = ALU_out[9:0];
+    assign Mem_WriteData = dataR2;
 
 endmodule
