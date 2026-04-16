@@ -1,6 +1,7 @@
 `timescale 1ns / 1ps
 
 //TODO: Fix JALR loop issue with long programs.
+//TODO: Make Memory Sequential?
 
 module cpu_top (
     input logic clk, // clk input
