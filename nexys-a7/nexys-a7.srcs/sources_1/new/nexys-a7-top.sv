@@ -27,18 +27,17 @@ module nexys_a7_top(
     output logic [15:0] LED //debug: register value out (cpu_top outvalue)
     );
     
+    logic [15:0] PC;
+    logic [15:0] inst;
     logic [15:0] Mem_ReadData;
     logic [15:0] Mem_WriteData;
     logic [15:0] Mem_Address;
     logic MemWrite;
 
-    // block_mem_data block_mem_data_instance (
-    //     .clka(CLK100MHZ),
-    //     .wea(MemWrite),
-    //     .addra(Mem_Address),
-    //     .dina(Mem_WriteData),
-    //     .douta(Mem_ReadData)
-    // );
+    instruction_mem instruction_mem_instance (
+        .PC(PC),
+        .inst(inst)
+    );
 
     data_mem data_mem_instance (
         .clk(CLK100MHZ),
@@ -51,6 +50,8 @@ module nexys_a7_top(
     cpu_top hb823 (
         .clk(CLK100MHZ),
         .reset(BTNU),
+        .PC(PC),
+        .inst(inst),
         .Mem_ReadData(Mem_ReadData),
         .Mem_WriteData(Mem_WriteData),
         .Mem_Address(Mem_Address),

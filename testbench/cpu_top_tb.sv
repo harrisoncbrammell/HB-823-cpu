@@ -8,6 +8,8 @@ module cpu_top_tb;
     // --- Signals for CPU Top ---
     logic        clk;
     logic        reset;
+    logic [15:0] PC;
+    logic [15:0] inst;
     // Debug ports
     logic [3:0]  inr;
     logic [15:0] outvalue;
@@ -18,12 +20,12 @@ module cpu_top_tb;
     logic [9:0]  Mem_Address;
     logic        MemWrite;
     
-    // String for our dynamic disassembler
-    string op_name;
     string instr_decoded;
 
     // --- Component Instantiations ---
     cpu_top uut (.*);
+
+    instruction_mem imem (.*);
 
     data_mem dmem (
         .clk(clk),
@@ -91,16 +93,16 @@ module cpu_top_tb;
     // --- DYNAMIC HARDWARE DISASSEMBLER ---
     // This reads the live instruction wire and decodes the full instruction on the fly!
     always @(*) begin
-        instr_decoded = decode_instruction(uut.inst);
+        instr_decoded = decode_instruction(inst);
     end
 
     // --- DYNAMIC STATE MONITOR ---
     always @(negedge clk) begin
         if (!reset) begin
-            $write("%6t | %2d | %4h | %-25s | ", $time, uut.PC, uut.inst, instr_decoded);
+            $write("%6t | %2d | %4h | %-25s | ", $time, PC, inst, instr_decoded);
 
             // 1. HALT
-            if (uut.inst == 16'hF000) begin
+            if (inst == 16'hF000) begin
                 $display("Stopping execution.");
                 $display("==========================================================================================\n");
                 $finish;
@@ -113,10 +115,10 @@ module cpu_top_tb;
             
             // 3. REGISTER WRITES
             else if (uut.RegWEn) begin
-                if (uut.inst[15:12] == 4'hC) // Special JAL print
+                if (inst[15:12] == 4'hC) // Special JAL print
                     $display("REG WRITE: R1 (Return Addr) gets %0d, Jumping to PC %0d", uut.dataW, uut.PC_write);
                 else
-                    $display("REG WRITE: R%0d gets %0d", uut.inst[11:8], uut.dataW);
+                    $display("REG WRITE: R%0d gets %0d", inst[11:8], uut.dataW);
             end
             
             // 4. BRANCHES

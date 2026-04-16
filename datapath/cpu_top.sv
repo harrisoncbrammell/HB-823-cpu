@@ -4,6 +4,9 @@ module cpu_top (
     input logic clk, // clk input
     input logic reset, // async reset input
 
+    output logic [15:0] PC,
+    input logic [15:0] inst,
+
     input logic [15:0] Mem_ReadData, // value read from data memory
     output logic [15:0] Mem_WriteData, // value to write to data memory
     output logic [9:0] Mem_Address, // data memory address select
@@ -16,8 +19,6 @@ module cpu_top (
 // --- Internal Wires ---
 // PC & Instruction
     logic [15:0] PC_write;
-    logic [15:0] PC;
-    logic [15:0] inst; 
 
     // Control Signals
     logic        BrEq;
@@ -44,7 +45,6 @@ module cpu_top (
 // --- Component Modules Instaniations---
 // automatic connections (all same port names)
 pc pc_inst (.*);
-instruction_mem imem (.*);
 control_unit ctrl (.*);
 immediate_gen imm_gen (.*);
 alu main_alu (.*);
