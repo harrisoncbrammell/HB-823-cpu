@@ -107,6 +107,7 @@ set rc [catch {
   create_msg_db init_design.pb
   set_param general.usePosixSpawnForFork 1
   set_param chipscope.maxJobs 4
+  set_param xicom.use_bs_reader 1
   set_param runs.launchOptions { -jobs 16  }
 OPTRACE "create in-memory project" START { }
   create_project -in_memory -part xc7a100tcsg324-1
@@ -118,11 +119,9 @@ OPTRACE "set parameters" START { }
   set_property parent.project_path D:/Development/School/computer_arch/cpu_project/nexys-a7/nexys-a7.xpr [current_project]
   set_property ip_output_repo D:/Development/School/computer_arch/cpu_project/nexys-a7/nexys-a7.cache/ip [current_project]
   set_property ip_cache_permissions {read write} [current_project]
-  set_property XPM_LIBRARIES XPM_CDC [current_project]
 OPTRACE "set parameters" END { }
 OPTRACE "add files" START { }
   add_files -quiet D:/Development/School/computer_arch/cpu_project/nexys-a7/nexys-a7.runs/synth_1/nexys_a7_top.dcp
-  read_ip -quiet d:/Development/School/computer_arch/cpu_project/nexys-a7/nexys-a7.srcs/sources_1/ip/clk_64_mhz/clk_64_mhz.xci
 OPTRACE "read constraints: implementation" START { }
   read_xdc D:/Development/School/computer_arch/cpu_project/nexys-a7/nexys-a7.srcs/constrs_1/imports/digital_systems/Nexys-A7-100T-Master.xdc
 OPTRACE "read constraints: implementation" END { }
@@ -324,7 +323,6 @@ set rc [catch {
   create_msg_db write_bitstream.pb
 OPTRACE "read constraints: write_bitstream" START { }
 OPTRACE "read constraints: write_bitstream" END { }
-  set_property XPM_LIBRARIES XPM_CDC [current_project]
   catch { write_mem_info -force -no_partial_mmi nexys_a7_top.mmi }
 OPTRACE "write_bitstream setup" END { }
 OPTRACE "write_bitstream" START { }

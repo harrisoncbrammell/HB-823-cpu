@@ -1,31 +1,20 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 04/15/2026 06:22:15 PM
-// Design Name: 
-// Module Name: nexys-a7-top
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
 
 module nexys_a7_top(
     input logic CLK100MHZ,
-    input logic BTNU, //reset
-    input logic [3:0] SW, //debug: select register to display on lights (cpu_top inr)
-    output logic [15:0] LED //debug: register value out (cpu_top outvalue)
-    );
+    input logic BTNU, // reset
+    input logic [15:0] SW, // SW[15] is manual clock, SW[3:0] selects debug register
+    output logic [15:0] LED,
+    output logic CA,
+    output logic CB,
+    output logic CC,
+    output logic CD,
+    output logic CE,
+    output logic CF,
+    output logic CG,
+    output logic DP,
+    output logic [7:0] AN
+);
     logic clk;
     logic [15:0] PC;
     logic [15:0] inst;
@@ -34,16 +23,11 @@ module nexys_a7_top(
     logic [15:0] Mem_Address;
     logic MemWrite;
 
-    //assign clk = CLK100MHZ;
+    assign clk = SW[15];
 
     instruction_mem instruction_mem_instance (
         .PC(PC),
         .inst(inst)
-    );
-
-    clk_64_mhz clk_64 (
-        .clk_in1(CLK100MHZ),
-        .clk_out1(clk)
     );
 
     data_mem data_mem_instance (
@@ -66,5 +50,19 @@ module nexys_a7_top(
         .inr(SW[3:0]),
         .outvalue(LED[15:0])
     );
-    
+
+    sev_seg_driver pc_display (
+        .clk(CLK100MHZ),
+        .value(PC),
+        .CA(CA),
+        .CB(CB),
+        .CC(CC),
+        .CD(CD),
+        .CE(CE),
+        .CF(CF),
+        .CG(CG),
+        .DP(DP),
+        .AN(AN)
+    );
+
 endmodule

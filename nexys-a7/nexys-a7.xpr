@@ -159,6 +159,15 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
+      <File Path="$PSRCDIR/sources_1/imports/cpu_project/sev_seg_driver.sv">
+        <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../sev_seg_driver.sv"/>
+          <Attr Name="ImportTime" Val="1776826340"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PSRCDIR/sources_1/new/nexys-a7-top.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -315,6 +324,7 @@
     <FileSet Name="clk_64_mhz" Type="BlockSrcs" RelSrcDir="$PSRCDIR/clk_64_mhz" RelGenDir="$PGENDIR/clk_64_mhz">
       <File Path="$PSRCDIR/sources_1/ip/clk_64_mhz/clk_64_mhz.xci">
         <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
