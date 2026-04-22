@@ -30,6 +30,7 @@ module instruction_mem_tb;
         $display("using random seed: %0d", seed);
 
         $display("starting word-addressable imem tests...");
+        pc = 16'h0000;
 
         // --- load dummy data into memory ---
         $display("\n--- loading test program into memory ---");
@@ -46,7 +47,7 @@ module instruction_mem_tb;
         $display("\n--- testing sequential fetch (pc + 1) ---");
         pc = 16'h0000;
         for (i = 0; i < 4; i = i + 1) begin
-            #10; // wait for combo read
+            #1;
             $display("pc: %0d | hex: %h | inst out: %h", pc, pc, inst);
             pc = pc + 16'd1; // simulate the pc+1 adder
         end
@@ -60,14 +61,14 @@ module instruction_mem_tb;
             // load a random value into that memory slot so we know what to expect
             uut.memory[pc[9:0]] = $urandom;
             
-            #10;
+            #1;
             $display("jump to pc: %0d | inst out: %h", pc, inst);
         end
 
         // --- test the face instruction ---
         $display("\n--- testing directed jump ---");
         pc = 16'd500; 
-        #10;
+        #1;
         $display("jump to pc: 500 | inst out: %h (expected FACE)", inst);
 
         $display("\ntests finished.");

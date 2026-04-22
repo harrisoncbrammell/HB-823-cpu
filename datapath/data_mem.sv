@@ -9,13 +9,15 @@ module data_mem(
     output logic [15:0] dataR // data read from memory
 );
     //TODO: Make variable size
-    (* ram_style = "block" *) reg [15:0] memory [0:1023]; // 1k memory array of 16-bit words
+    (* ram_style = "block" *) reg [15:0] memory [0:2047]; // 2k memory array of 16-bit words (max for nexys-7 board)
 
-    assign dataR = memory[addr[9:0]];  // it will always output the data at the given address immediately
+    always_ff @(negedge clk) begin
+        dataR <= memory[addr[10:0]];
+    end  // it will always output the data at the given address immediately
 
     always_ff @(posedge clk) begin
         if (MemWrite == 1'b1) begin
-            memory[addr[9:0]] <= dataW;
+            memory[addr[10:0]] <= dataW;
         end
     end
 endmodule

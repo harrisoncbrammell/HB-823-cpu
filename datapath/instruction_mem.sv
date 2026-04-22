@@ -8,7 +8,7 @@ module instruction_mem(
     output logic [15:0] inst // selected instruction out (memory read out)
 );
     //TODO: make variable size
-    logic [15:0] memory [0:1023]; // 1k memory array of 16-bit words per the project specs
+    (* rom_style = "distributed" *) logic [15:0] memory [0:1023]; // 1k async ROM, implemented in LUTs
 
     initial begin
         $readmemh("../program.mem", memory); // load hex machine code program from mem file

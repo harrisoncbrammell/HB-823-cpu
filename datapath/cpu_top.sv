@@ -12,7 +12,7 @@ module cpu_top (
 
     input logic [15:0] Mem_ReadData, // value read from data memory
     output logic [15:0] Mem_WriteData, // value to write to data memory
-    output logic [9:0] Mem_Address, // data memory address select
+    output logic [10:0] Mem_Address, // data memory address select
     output logic MemWrite, // data memory write enable 1 to write, 0 to read
 
     input logic [3:0] inr, // debug port: register select
@@ -55,12 +55,7 @@ module cpu_top (
     assign opcode = inst[15:12];
 
     always_comb begin
-        // defaults for R type instructions
-        rsR1_addr = inst[7:4];
-        rsR2_addr = inst[3:0];
-        rdW_addr  = inst[11:8];
-
-        case (opcode)
+        unique case (opcode)
             4'h5: begin // LI
                 rsR1_addr = 4'd0;        // force ALU A input to R0 = 0
                 rsR2_addr = 4'd0;        // unused
@@ -93,6 +88,9 @@ module cpu_top (
 
             default: begin
                 // keep R-type / current default behavior
+                rsR1_addr = inst[7:4];
+                rsR2_addr = inst[3:0];
+                rdW_addr  = inst[11:8];
             end
         endcase
     end
@@ -134,7 +132,7 @@ module cpu_top (
         .dataW(dataW)
     );
 
-    assign Mem_Address   = ALU_out[9:0];
+    assign Mem_Address   = ALU_out[10:0];
     assign Mem_WriteData = dataR2;
 
 endmodule

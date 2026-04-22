@@ -7,11 +7,11 @@ module pc_write_select(
     output logic [15:0] PC_write // next program counter value
 );
     always_comb begin
-        if (PC_Sel == 1'b1) begin
-            PC_write = ALU_out;
-        end else begin
-            PC_write = PC + 16'b1;
-        end
+        unique case (PC_Sel)
+            1'b0:    PC_write = PC + 16'b1;
+            1'b1:    PC_write = ALU_out;
+            default: PC_write = PC + 16'b1;
+        endcase
     end
 endmodule
 
@@ -37,7 +37,7 @@ module regfile_dataW_select(
     output logic [15:0] dataW //dataW to the regfile
 );
 always_comb begin
-    case (WB_Sel)
+    unique case (WB_Sel)
         2'b00: dataW = ALU_out;    // Default: read from ALU (ADD, SUB, LI, etc.)
         2'b01: dataW = dataR;      // read from data memory (LW)
         2'b10: dataW = PC + 16'b1; // read from PC+1 (JAL)
